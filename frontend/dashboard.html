@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="dashboard-bg">
+
+<div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>MeterFlow</h2>
+
+        <p onclick="showSection('overview')">📊 Overview</p>
+        <!-- <p onclick="showSection('analytics')">📈 Analytics</p> -->
+        <p onclick="showSection('apikeys')">🔑 API Keys</p>
+        <p onclick="showSection('usage')">📋 Usage</p>
+        <p onclick="showSection('pricing')">💰 Pricing</p>
+        <p onclick="showSection('billing')">💳 Recharge</p>
+        <p onclick="showSection('payments'); loadPayments()">🧾 Payments</p>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+<!-- OVERVIEW + ANALYTICS -->
+<div id="overview" class="section">
+
+    <!-- STATS -->
+    <div class="stats">
+        <div class="stat-card">
+            <h4>Total Requests</h4>
+            <p id="total_requests">0</p>
+        </div>
+        <div class="stat-card">
+            <h4>Total APIs</h4>
+            <p id="total_apis">0</p>
+        </div>
+        <div class="stat-card">
+            <h4>Total Credits</h4>
+            <p id="total_credits">0</p>
+        </div>
+    </div>
+
+    <!-- EMPTY STATE (IMPORTANT) -->
+    <div id="empty_state" class="card" style="display:none;">
+        <h2>🚀 Start Using MeterFlow</h2>
+        <p>You don’t have any APIs yet.</p>
+
+        <button onclick="showSection('apikeys')">
+            Generate Your First API Key
+        </button>
+
+        <div class="pricing-box">
+            <h3>💰 Pricing</h3>
+            <p>₹1 = 500 requests</p>
+            <p>First 100 requests FREE</p>
+        </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="analytics_content">
+
+        <div class="card">
+            <h3>Usage Trends</h3>
+            <canvas id="lineChart"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>API Distribution</h3>
+            <canvas id="pieChart"></canvas>
+        </div>
+
+    </div>
+
+</div>
+        <!-- API KEYS -->
+        <div id="apikeys" class="section" style="display:none;">
+            <div class="card">
+                <h3>Generate API Key</h3>
+                <select id="api_list"></select>
+                <button onclick="generateKey()">Generate</button>
+                <p id="api_key_output"></p>
+            </div>
+
+            <div id="dashboard_data"></div>
+        </div>
+
+        <!-- USAGE -->
+        <div id="usage" class="section" style="display:none;">
+            <div class="card">
+                <h3>Your Usage</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>API</th>
+                            <th>Requests</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usage_table"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="pricing" class="section" style="display:none;">
+
+            <div class="pricing-container">
+        
+                <!-- FREE -->
+                <div class="pricing-card-pro">
+                    <h3>Free</h3>
+                    <h1>₹0</h1>
+                    <p>Start exploring</p>
+        
+                    <ul>
+                        <li>✔ 100 Free Requests</li>
+                        <li>✔ Basic Analytics</li>
+                        <li>✔ No Credit Card Required</li>
+                    </ul>
+        
+                    <button onclick="showSection('apikeys')">Get Started</button>
+                </div>
+        
+                <!-- PAY AS YOU GO -->
+                <div class="pricing-card-pro highlight">
+                    <div class="badge">POPULAR</div>
+        
+                    <h3>Pay As You Go</h3>
+                    <h1>₹1</h1>
+                    <p>for 500 requests</p>
+        
+                    <ul>
+                        <li>✔ Pay only for what you use</li>
+                        <li>✔ No monthly subscription</li>
+                        <li>✔ Real-time usage tracking</li>
+                    </ul>
+        
+                    <button onclick="showSection('billing')">Recharge</button>
+                </div>
+        
+            </div>
+        </div> 
+        <div id="payments" class="section" style="display:none;">
+            <div class="card premium-card">
+        
+                <div class="card-header">
+                    <h2>🧾 Payment History</h2>
+                    <p>Track all your transactions</p>
+                </div>
+        
+                <!-- EMPTY STATE -->
+                <div id="payments_empty" class="empty-state" style="display:none;">
+                    <h3>No payments yet</h3>
+                    <p>Recharge your API to see transactions here</p>
+                </div>
+        
+                <!-- TABLE -->
+                <div class="table-wrapper">
+                    <table class="premium-table">
+                        <thead>
+                            <tr>
+                                <th>Amount</th>
+                                <th>Credits</th>
+                                <th>Payment ID</th>
+                                
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments_table"></tbody>
+                    </table>
+                </div>
+        
+            </div>
+        </div>
+        <!-- BILLING -->
+
+        <div id="billing" class="section" style="display:none;">
+            <div class="card">
+                <h3>Recharge</h3>
+                <input id="re_api_key" placeholder="API Key">
+                <input id="amount" placeholder="Amount ₹">
+                <button onclick="rechargePrompt()">Recharge</button>
+                <p id="msg"></p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

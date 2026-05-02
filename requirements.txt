@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+mysql-connector-python
+python-jose
+passlib[bcrypt]
+razorpay
+python-multipart
+python-dotenv
+requests

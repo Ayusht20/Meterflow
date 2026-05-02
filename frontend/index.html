@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MeterFlow</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="dashboard-bg">
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <h2>MeterFlow</h2>
+    <div>
+        <button onclick="goLogin()">Login</button>
+        <button onclick="goSignup()">Get Started</button>
+    </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+    <h1>Manage & Track Your API Usage ⚡</h1>
+    <p>
+        Generate API keys, monitor requests, and control usage with a simple pay-as-you-go system.
+    </p>
+
+    <button onclick="goSignup()">Start Free</button>
+
+    <p style="margin-top:10px; color:#aaa;">
+        100 free requests • No subscription
+    </p>
+</div>
+
+<!-- FEATURES -->
+<div class="features">
+
+    <div class="card">
+        <h3>🔐 API Key Management</h3>
+        <p>Create and manage secure API keys instantly.</p>
+    </div>
+
+    <div class="card">
+        <h3>📊 Usage Tracking</h3>
+        <p>Monitor your API requests with real-time analytics.</p>
+    </div>
+
+    <div class="card">
+        <h3>💰 Simple Billing</h3>
+        <p>Pay only for what you use — ₹1 = 500 requests.</p>
+    </div>
+
+</div>
+
+<!-- TRUST SECTION -->
+<div style="text-align:center; margin-top:40px; color:#aaa;">
+    <p>No hidden charges • Recharge anytime • Built for developers</p>
+</div>
+
+
+<script>
+function goLogin() {
+    window.location.href = "/static/login.html";
+}
+
+function goSignup() {
+    window.location.href = "/static/signup.html";
+}
+</script>
+
+</body>
+</html>
