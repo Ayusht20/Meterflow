@@ -31,10 +31,9 @@ RAZORPAY_KEY_SECRET = os.getenv("secret_key")
 
 def get_db():
     try:
-        return psycopg2.connect(
-    os.getenv("DATABASE_URL"),
-    connect_timeout=10
-        )
+        db_url = os.getenv("DATABASE_URL")
+        print("DB URL:", db_url)  # 🔥 check what is actually coming
+        return psycopg2.connect(db_url)
     except Exception as e:
         print("DB ERROR:", e)
         raise HTTPException(status_code=500, detail="DB connection failed")
