@@ -1,10 +1,7 @@
 from fastapi import FastAPI, Form, HTTPException,Depends
-import mysql.connector
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import secrets
 import requests
 from fastapi import Request
@@ -13,13 +10,14 @@ import hashlib
 import razorpay
 import dotenv
 import os
+import psycopg2
 
 app = FastAPI()
 
 dotenv.load_dotenv()
 
-from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -30,6 +28,13 @@ app.add_middleware(
 
 RAZORPAY_KEY_ID = os.getenv("api_key")
 RAZORPAY_KEY_SECRET = os.getenv("secret_key")
+
+def get_db():
+    try:
+        return psycopg2.connect(os.getenv("DATABASE_URL"))
+    except Exception as e:
+        print("DB ERROR:", e)
+        raise HTTPException(status_code=500, detail="DB connection failed")
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -53,18 +58,7 @@ def hash_password(password: str):
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(normalize_password(plain_password), hashed_password)
 
-def get_db():
-    try:
-        return mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            port=int(os.getenv("DB_PORT", 3306)),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASS"),
-            database=os.getenv("DB_NAME")
-        )
-    except Exception as e:
-        print("DB ERROR:", e)
-        raise HTTPException(status_code=500, detail="DB connection failed")
+
 
 
 
@@ -117,7 +111,7 @@ def login(email: str = Form(...), password: str = Form(...)):
     try:
         cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
         user = cursor.fetchone()
-
+        print(email,password)
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
 
@@ -150,7 +144,7 @@ def login(email: str = Form(...), password: str = Form(...)):
             conn.commit()
 
         token = create_token({"sub": email})
-
+        print(user,password)
         return {"access_token": token}
 
     except HTTPException as e:
@@ -338,17 +332,12 @@ def gateway(
         (api_id, api_key)
     )
 
-
-    if data:
-        cursor.execute(
-            "UPDATE usage_summary SET total_requests = total_requests + 1 WHERE api_id=%s AND api_key=%s",
-            (api_id, api_key)
-        )
-    else:
-        cursor.execute(
-            "INSERT INTO usage_summary (api_id, api_key, total_requests) VALUES (%s, %s, 1)",
-            (api_id, api_key)
-        )
+    cursor.execute("""
+        INSERT INTO usage_summary (api_id, api_key, total_requests)
+        VALUES (%s, %s, 1)
+        ON CONFLICT (api_id, api_key)
+        DO UPDATE SET total_requests = usage_summary.total_requests + 1
+    """, (api_id, api_key))
 
     conn.commit()
 
@@ -482,7 +471,7 @@ def analytics(user=Depends(verify_token)):
         SELECT DATE(timestamp) as day, COUNT(*) as total
         FROM usage_logs
         WHERE api_key IN ({format_strings})
-        AND timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND timestamp >= NOW() - INTERVAL '7 days'
         GROUP BY day
         ORDER BY day
     """
@@ -518,3 +507,5 @@ def get_payments(user=Depends(verify_token)):
 
 
     return {"payments": data}
+
+
