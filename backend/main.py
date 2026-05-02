@@ -48,11 +48,19 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def normalize_password(password: str):
+    return hashlib.sha256(password.encode()).hexdigest()
+
 def hash_password(password: str):
-    return pwd_context.hash(password[:72])  # safe limit
+    return pwd_context.hash(normalize_password(password))
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password[:72], hashed_password)
+    return pwd_context.verify(normalize_password(plain_password), hashed_password)
+
+
+
+
+
 
 def create_token(data: dict):
     to_encode = data.copy()
