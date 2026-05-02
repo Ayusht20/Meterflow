@@ -57,7 +57,7 @@ def get_db():
     try:
         return mysql.connector.connect(
             host=os.getenv("DB_HOST"),
-            port=int(os.getenv("DB_PORT")),
+            port=int(os.getenv("DB_PORT", 3306))
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASS"),
             database=os.getenv("DB_NAME")
@@ -67,7 +67,7 @@ def get_db():
         raise HTTPException(status_code=500, detail="DB connection failed")
 
 
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+
 
 def create_token(data: dict):
     to_encode = data.copy()
@@ -105,10 +105,10 @@ def signup(email: str = Form(...), password: str = Form(...)):
     return {"message": "Signup successful"}
 
 
-
 @app.get("/")
-def serve_index():
-    return FileResponse("../frontend/index.html")
+def root():
+    return {"message": "API is running 🚀"}
+
 @app.post("/login")
 def login(email: str = Form(...), password: str = Form(...)):
     conn = get_db()
@@ -164,9 +164,7 @@ def login(email: str = Form(...), password: str = Form(...)):
         cursor.close()
         conn.close()
 
-@app.get("/dashboard-page")
-def serve_dashboard():
-    return FileResponse("../frontend/dashboard.html")
+
 
 @app.get("/my-dashboard")
 def my_dashboard(user=Depends(verify_token)):
