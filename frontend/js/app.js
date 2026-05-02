@@ -1,4 +1,4 @@
-const API = "http://127.0.0.1:8000";
+const API = "https://meterflow-5qrc.onrender.com";
 
 window.onload = function () {
 
@@ -45,7 +45,7 @@ async function login() {
 
     if (data.access_token) {
         localStorage.setItem("token", data.access_token);
-        window.location.href = "/dashboard-page";
+        window.location.href = "/dashboard.html";
     } else {
         document.getElementById("msg").innerText = data.detail;
     }
@@ -553,14 +553,12 @@ function handleAuth() {
 
 function logout() {
     localStorage.removeItem("token");
-    window.location.href = "/";
+    window.location.href = "/index.html";
 }
-function showSection(id) {
-
+function showSection(id, el) {
     document.querySelectorAll(".section").forEach(s => s.style.display = "none");
     document.getElementById(id).style.display = "block";
 
-    // 🔥 active highlight
     document.querySelectorAll(".sidebar p").forEach(p => p.classList.remove("active"));
-    event.target.classList.add("active");
+    if (el) el.classList.add("active");
 }
