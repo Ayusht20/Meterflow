@@ -7,3 +7,4 @@ razorpay
 python-multipart
 python-dotenv
 requests
+psycopg2-binary
