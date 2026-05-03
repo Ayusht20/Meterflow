@@ -32,7 +32,7 @@ RAZORPAY_KEY_SECRET = os.getenv("secret_key")
 def get_db():
     try:
         db_url = os.getenv("DATABASE_URL")
-        print("DB URL:", db_url)  # 🔥 check what is actually coming
+
         return psycopg2.connect(db_url)
     except Exception as e:
         print("DB ERROR:", e)
@@ -109,7 +109,6 @@ def login(email: str = Form(...), password: str = Form(...)):
     try:
         cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
         user = cursor.fetchone()
-        print(email,password)
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
 
@@ -142,7 +141,6 @@ def login(email: str = Form(...), password: str = Form(...)):
             conn.commit()
 
         token = create_token({"sub": email})
-        print(user,password)
         return {"access_token": token}
 
     except HTTPException as e:
@@ -417,16 +415,12 @@ def verify_payment(
         cursor.execute("SELECT balance FROM wallet WHERE api_key=%s", (api_key,))
         wallet = cursor.fetchone()
 
-        if wallet:
-            cursor.execute(
-                "UPDATE wallet SET balance = balance + %s WHERE api_key=%s",
-                (credits, api_key)
-            )
-        else:
-            cursor.execute(
-                "INSERT INTO wallet (api_key, balance) VALUES (%s, %s)",
-                (api_key, credits)
-            )
+        cursor.execute("""
+            INSERT INTO wallet (api_key, balance)
+            VALUES (%s, %s)
+            ON CONFLICT (api_key)
+            DO UPDATE SET balance = wallet.balance + %s
+        """, (api_key, credits, credits))
 
 
         cursor.execute(
