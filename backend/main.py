@@ -320,6 +320,8 @@ def gateway(
 
     url = f"{base_url}/{path}"
 
+
+
     cursor.execute(
         "INSERT INTO usage_logs (api_id, api_key) VALUES (%s, %s)",
         (api_id, api_key)
@@ -412,12 +414,16 @@ def verify_payment(
         cursor.execute("SELECT balance FROM wallet WHERE api_key=%s", (api_key,))
         wallet = cursor.fetchone()
 
-        cursor.execute("""
-            INSERT INTO wallet (api_key, balance)
-            VALUES (%s, %s)
-            ON CONFLICT (api_key)
-            DO UPDATE SET balance = wallet.balance + %s
-        """, (api_key, credits, credits))
+        if wallet:
+            cursor.execute(
+                "UPDATE wallet SET balance = balance + %s WHERE api_key=%s",
+                (credits, api_key)
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO wallet (api_key, balance) VALUES (%s, %s)",
+                (api_key, credits)
+            )
 
 
         cursor.execute(
