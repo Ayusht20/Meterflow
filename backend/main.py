@@ -29,11 +29,17 @@ app.add_middleware(
 RAZORPAY_KEY_ID = os.getenv("api_key")
 RAZORPAY_KEY_SECRET = os.getenv("secret_key")
 
+from psycopg2.pool import SimpleConnectionPool
+
+db_pool = SimpleConnectionPool(
+    minconn=1,
+    maxconn=12,   
+    dsn=os.getenv("DATABASE_URL")
+)
+
 def get_db():
     try:
-        db_url = os.getenv("DATABASE_URL")
-
-        return psycopg2.connect(db_url)
+        return db_pool.getconn()
     except Exception as e:
         print("DB ERROR:", e)
         raise HTTPException(status_code=500, detail="DB connection failed")
@@ -92,7 +98,7 @@ def signup(email: str = Form(...), password: str = Form(...)):
     conn.commit()
 
     cursor.close()
-    conn.close()
+    db_pool.putconn(conn)
 
     return {"message": "Signup successful"}
 
@@ -152,7 +158,7 @@ def login(email: str = Form(...), password: str = Form(...)):
 
     finally:
         cursor.close()
-        conn.close()
+        db_pool.putconn(conn)
 
 
 
@@ -211,7 +217,7 @@ def get_apis():
     data = cursor.fetchall()
 
     cursor.close()
-    conn.close()
+    db_pool.putconn(conn)
 
     return {"apis": data}
 
@@ -248,7 +254,7 @@ def generate_key(api_id: int = Form(...), user=Depends(verify_token)):
     conn.commit()
 
     cursor.close()
-    conn.close()
+    db_pool.putconn(conn)    
 
     return {"api_key": key}
 
@@ -475,7 +481,7 @@ def analytics(user=Depends(verify_token)):
     rows = cursor.fetchall()
 
     cursor.close()
-    conn.close()
+    db_pool.putconn(conn)
 
     return {"data": rows}
 
