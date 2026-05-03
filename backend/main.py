@@ -320,9 +320,6 @@ def gateway(
 
     url = f"{base_url}/{path}"
 
-    print("FINAL URL:", url)
-
-
     cursor.execute(
         "INSERT INTO usage_logs (api_id, api_key) VALUES (%s, %s)",
         (api_id, api_key)
