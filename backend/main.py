@@ -403,9 +403,11 @@ def verify_payment(
     razorpay_payment_id: str = Form(...),
     razorpay_signature: str = Form(...),
     api_key: str = Form(...),
-    amount: float = Form(...)
+    amount: float = Form(...),
+    user=Depends(verify_token) 
 ):
     try:
+        # 1. Verify Razorpay Signature
         client.utility.verify_payment_signature({
             "razorpay_order_id": razorpay_order_id,
             "razorpay_payment_id": razorpay_payment_id,
@@ -414,7 +416,29 @@ def verify_payment(
 
         conn = get_db()
         cursor = conn.cursor()
+        email = user["sub"]
 
+        # 2. Get the User ID of the logged-in user
+        cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
+        user_record = cursor.fetchone()
+        if not user_record:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_id = user_record[0]
+
+        # 3. VERIFY OWNERSHIP: Does this api_key belong to this user_id?
+        cursor.execute(
+            "SELECT 1 FROM api_keys WHERE api_key=%s AND user_id=%s",
+            (api_key, user_id)
+        )
+        if not cursor.fetchone():
+            cursor.close()
+            db_pool.putconn(conn)
+            raise HTTPException(
+                status_code=403, 
+                detail="Unauthorized: This API key does not belong to your account."
+            )
+
+        # 4. Proceed with recharge logic
         credits = int(amount * 500)
 
         cursor.execute("SELECT balance FROM wallet WHERE api_key=%s", (api_key,))
@@ -431,20 +455,22 @@ def verify_payment(
                 (api_key, credits)
             )
 
-
         cursor.execute(
             "INSERT INTO payments (api_key, amount, credits, razorpay_payment_id) VALUES (%s, %s, %s, %s)",
             (api_key, amount, credits, razorpay_payment_id)
         )
 
         conn.commit()
-
         return {"message": "Payment successful ✅"}
 
+    except HTTPException as e:
+        raise e
     except Exception as e:
         print("PAYMENT ERROR:", e)
-        raise HTTPException(status_code=400, detail="Payment failed")
-
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): db_pool.putconn(conn)
 from fastapi import Depends
 from datetime import datetime, timedelta
 @app.get("/analytics")
