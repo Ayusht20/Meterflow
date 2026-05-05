@@ -39,7 +39,7 @@ The platform simulates real-world API monetization systems similar to **RapidAPI
 ![Analytics](assets/analytics.png)
 
 ### 🔑 API Key Management
-![API Keys](assets/generate.png.png)
+![API Keys](assets/generate.png)
 
 ### 📜 Usage History
 ![Usage](assets/usage.png)
