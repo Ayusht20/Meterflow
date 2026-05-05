@@ -385,35 +385,8 @@ def get_usage(user=Depends(verify_token)):
     return {"usage": data}
 
 @app.post("/create-order")
-def create_order(amount: float = Form(...), user=Depends(verify_token)):
-
-    order = client.order.create({
-        "amount": int(amount * 100), 
-        "currency": "INR",
-        "payment_capture": 1
-    })
-
-    return {
-        "order_id": order["id"],
-        "key": RAZORPAY_KEY_ID
-    }
-@app.post("/verify-payment")
-def verify_payment(
-    razorpay_order_id: str = Form(...),
-    razorpay_payment_id: str = Form(...),
-    razorpay_signature: str = Form(...),
-    api_key: str = Form(...),
-    amount: float = Form(...),
-    user=Depends(verify_token) 
-):
+def create_order(amount: float = Form(...), api_key: str = Form(...),user=Depends(verify_token)):
     try:
-        # 1. Verify Razorpay Signature
-        client.utility.verify_payment_signature({
-            "razorpay_order_id": razorpay_order_id,
-            "razorpay_payment_id": razorpay_payment_id,
-            "razorpay_signature": razorpay_signature
-        })
-
         conn = get_db()
         cursor = conn.cursor()
         email = user["sub"]
@@ -437,7 +410,40 @@ def verify_payment(
                 status_code=403, 
                 detail="Unauthorized: This API key does not belong to your account."
             )
+        order = client.order.create({
+            "amount": int(amount * 100), 
+            "currency": "INR",
+            "payment_capture": 1
+        })
 
+        return {
+            "order_id": order["id"],
+            "key": RAZORPAY_KEY_ID
+        }
+
+    except Exception as e:
+        print("PAYMENT ERROR:", e)
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+
+@app.post("/verify-payment")
+def verify_payment(
+    razorpay_order_id: str = Form(...),
+    razorpay_payment_id: str = Form(...),
+    razorpay_signature: str = Form(...),
+    api_key: str = Form(...),
+    amount: float = Form(...),
+    user=Depends(verify_token) 
+):
+    try:
+        # 1. Verify Razorpay Signature
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_signature": razorpay_signature
+        })
+
+        conn = get_db()
+        cursor = conn.cursor()
         # 4. Proceed with recharge logic
         credits = int(amount * 500)
 
