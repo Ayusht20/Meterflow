@@ -430,7 +430,9 @@ def create_order(amount: float = Form(...), api_key: str = Form(...),user=Depend
     except Exception as e:
         print("PAYMENT ERROR:", e)
         raise HTTPException(status_code=400, detail="Payment verification failed")
-
+    finally:
+        cursor.close()
+        db_pool.putconn(conn)
 @app.post("/verify-payment")
 def verify_payment(
     razorpay_order_id: str = Form(...),
