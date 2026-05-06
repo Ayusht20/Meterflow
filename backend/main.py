@@ -411,9 +411,15 @@ def create_order(amount: float = Form(...), api_key: str = Form(...),user=Depend
                 detail="Unauthorized: This API key does not belong to your account."
             )
         order = client.order.create({
-            "amount": int(amount * 100), 
+            "amount": int(amount * 100),
             "currency": "INR",
-            "payment_capture": 1
+            "payment_capture": 1,
+
+            "notes": {
+                "user_id": str(user_id),
+                "api_key": api_key,
+                "amount": str(amount)
+            }
         })
 
         return {
@@ -430,53 +436,151 @@ def verify_payment(
     razorpay_order_id: str = Form(...),
     razorpay_payment_id: str = Form(...),
     razorpay_signature: str = Form(...),
-    api_key: str = Form(...),
-    amount: float = Form(...),
-    user=Depends(verify_token) 
+    user=Depends(verify_token)
 ):
+    conn = get_db()
+    cursor = conn.cursor()
+
     try:
-        # 1. Verify Razorpay Signature
+
+        # ---------------- VERIFY SIGNATURE ----------------
         client.utility.verify_payment_signature({
             "razorpay_order_id": razorpay_order_id,
             "razorpay_payment_id": razorpay_payment_id,
             "razorpay_signature": razorpay_signature
         })
 
-        conn = get_db()
-        cursor = conn.cursor()
-        # 4. Proceed with recharge logic
+        # ---------------- CURRENT USER ----------------
+        email = user["sub"]
+
+        cursor.execute(
+            "SELECT id FROM users WHERE email=%s",
+            (email,)
+        )
+
+        current_user = cursor.fetchone()
+
+        if not current_user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+
+        current_user_id = current_user[0]
+
+        # ---------------- FETCH ORDER FROM RAZORPAY ----------------
+        order = client.order.fetch(razorpay_order_id)
+
+        notes = order.get("notes", {})
+
+        stored_user_id = int(notes.get("user_id"))
+        api_key = notes.get("api_key")
+        amount = float(notes.get("amount"))
+
+        # ---------------- OWNERSHIP VALIDATION ----------------
+        if current_user_id != stored_user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized payment verification"
+            )
+
+        # ---------------- DUPLICATE PAYMENT CHECK ----------------
+        cursor.execute(
+            """
+            SELECT 1
+            FROM payments
+            WHERE razorpay_payment_id=%s
+            """,
+            (razorpay_payment_id,)
+        )
+
+        if cursor.fetchone():
+            raise HTTPException(
+                status_code=400,
+                detail="Payment already processed"
+            )
+
+        # ---------------- CALCULATE CREDITS ----------------
         credits = int(amount * 500)
 
-        cursor.execute("SELECT balance FROM wallet WHERE api_key=%s", (api_key,))
+        # ---------------- UPDATE WALLET ----------------
+        cursor.execute(
+            """
+            SELECT balance
+            FROM wallet
+            WHERE api_key=%s
+            """,
+            (api_key,)
+        )
+
         wallet = cursor.fetchone()
 
         if wallet:
+
             cursor.execute(
-                "UPDATE wallet SET balance = balance + %s WHERE api_key=%s",
+                """
+                UPDATE wallet
+                SET balance = balance + %s
+                WHERE api_key=%s
+                """,
                 (credits, api_key)
             )
+
         else:
+
             cursor.execute(
-                "INSERT INTO wallet (api_key, balance) VALUES (%s, %s)",
+                """
+                INSERT INTO wallet
+                (api_key, balance)
+                VALUES (%s, %s)
+                """,
                 (api_key, credits)
             )
 
+        # ---------------- STORE PAYMENT HISTORY ----------------
         cursor.execute(
-            "INSERT INTO payments (api_key, amount, credits, razorpay_payment_id) VALUES (%s, %s, %s, %s)",
-            (api_key, amount, credits, razorpay_payment_id)
+            """
+            INSERT INTO payments
+            (
+                api_key,
+                amount,
+                credits,
+                razorpay_payment_id
+            )
+            VALUES (%s, %s, %s, %s)
+            """,
+            (
+                api_key,
+                amount,
+                credits,
+                razorpay_payment_id
+            )
         )
 
         conn.commit()
-        return {"message": "Payment successful ✅"}
+
+        return {
+            "message": "Payment successful ✅"
+        }
 
     except HTTPException as e:
+        conn.rollback()
         raise e
+
     except Exception as e:
-        print("PAYMENT ERROR:", e)
-        raise HTTPException(status_code=400, detail="Payment verification failed")
+
+        conn.rollback()
+
+        print("VERIFY PAYMENT ERROR:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Payment verification failed"
+        )
+
     finally:
-        if 'cursor' in locals(): cursor.close()
-        if 'conn' in locals(): db_pool.putconn(conn)
+        cursor.close()
+        db_pool.putconn(conn)
 from fastapi import Depends
 from datetime import datetime, timedelta
 @app.get("/analytics")

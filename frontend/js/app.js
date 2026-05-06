@@ -476,50 +476,158 @@ async function loadPayments() {
 }
 async function recharge(api_key, amount) {
 
-    let form = new FormData();
-    form.append("amount", amount);
-    form.append("api_key",api_key)
-    let res = await fetch(API + "/create-order", {
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + localStorage.getItem("token")
-        },
-        body: form
-    });
+    try {
 
-    let data = await res.json();
+        // ---------------- VALIDATION ----------------
 
-    let options = {
-        key: data.key,
-        amount: amount * 100,
-        currency: "INR",
-        order_id: data.order_id,
-
-        handler: async function (response) {
-
-            let verifyForm = new FormData();
-            verifyForm.append("razorpay_order_id", response.razorpay_order_id);
-            verifyForm.append("razorpay_payment_id", response.razorpay_payment_id);
-            verifyForm.append("razorpay_signature", response.razorpay_signature);
-            verifyForm.append("api_key", api_key);
-            verifyForm.append("amount", amount);
-
-            let verifyRes = await fetch(API + "/verify-payment", {
-                method: "POST",
-                body: verifyForm
-            });
-
-            let verifyData = await verifyRes.json();
-
-            alert(verifyData.message);
-            loadDashboard();
+        if (!api_key || !amount) {
+            alert("API key and amount required");
+            return;
         }
-    };
 
-    let rzp = new Razorpay(options);
-    rzp.open();
+        amount = parseFloat(amount);
+
+        if (isNaN(amount) || amount <= 0) {
+            alert("Invalid amount");
+            return;
+        }
+
+        // ---------------- CREATE ORDER ----------------
+
+        let form = new FormData();
+
+        form.append("amount", amount);
+        form.append("api_key", api_key);
+
+        let res = await fetch(API + "/create-order", {
+
+            method: "POST",
+
+            headers: {
+                "Authorization":
+                    "Bearer " + localStorage.getItem("token")
+            },
+
+            body: form
+        });
+
+        let data = await res.json();
+
+        if (!res.ok) {
+            alert(data.detail || "Failed to create order");
+            return;
+        }
+
+        // ---------------- RAZORPAY OPTIONS ----------------
+
+        let options = {
+
+            key: data.key,
+
+            amount: amount * 100,
+
+            currency: "INR",
+
+            order_id: data.order_id,
+
+            name: "MeterFlow",
+
+            description: "API Credits Recharge",
+
+            theme: {
+                color: "#6366f1"
+            },
+
+            handler: async function (response) {
+
+                try {
+
+                    // ---------------- VERIFY PAYMENT ----------------
+
+                    let verifyForm = new FormData();
+
+                    verifyForm.append(
+                        "razorpay_order_id",
+                        response.razorpay_order_id
+                    );
+
+                    verifyForm.append(
+                        "razorpay_payment_id",
+                        response.razorpay_payment_id
+                    );
+
+                    verifyForm.append(
+                        "razorpay_signature",
+                        response.razorpay_signature
+                    );
+
+                    let verifyRes = await fetch(
+                        API + "/verify-payment",
+                        {
+
+                            method: "POST",
+
+                            headers: {
+                                "Authorization":
+                                    "Bearer " +
+                                    localStorage.getItem("token")
+                            },
+
+                            body: verifyForm
+                        }
+                    );
+
+                    let verifyData = await verifyRes.json();
+
+                    if (!verifyRes.ok) {
+                        alert(
+                            verifyData.detail ||
+                            "Payment verification failed"
+                        );
+                        return;
+                    }
+
+                    alert(verifyData.message);
+
+                    loadDashboard();
+
+                    if (typeof loadPayments === "function") {
+                        loadPayments();
+                    }
+
+                } catch (err) {
+
+                    console.error("VERIFY ERROR:", err);
+
+                    alert("Payment verification failed");
+                }
+            }
+        };
+
+        // ---------------- OPEN RAZORPAY ----------------
+
+        let rzp = new Razorpay(options);
+
+        // Payment failed event
+        rzp.on("payment.failed", function (response) {
+
+            console.error(response.error);
+
+            alert(
+                response.error.description ||
+                "Payment failed"
+            );
+        });
+
+        rzp.open();
+
+    } catch (err) {
+
+        console.error("RECHARGE ERROR:", err);
+
+        alert("Something went wrong");
+    }
 }
-
 let isLogin = true;
 
 function showLogin() {
