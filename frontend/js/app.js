@@ -478,7 +478,7 @@ async function recharge(api_key, amount) {
 
     let form = new FormData();
     form.append("amount", amount);
-
+    form.append("api_key",api_key)
     let res = await fetch(API + "/create-order", {
         method: "POST",
         headers: {
