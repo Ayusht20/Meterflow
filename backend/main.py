@@ -205,7 +205,8 @@ def my_dashboard(user=Depends(verify_token)):
             "usage": usage,
             "balance": balance
         })
-
+    cursor.close()
+    db_pool.putconn(conn)
     return {"data": result}
 
 @app.get("/apis")
@@ -361,7 +362,9 @@ def gateway(
         return response.json()
     except:
         return {"response": response.text}
-
+    finally:
+            cursor.close()
+            db_pool.putconn(conn)
 @app.get("/my-usage")
 def get_usage(user=Depends(verify_token)):
     conn = get_db()
@@ -382,8 +385,9 @@ def get_usage(user=Depends(verify_token)):
 
     data = cursor.fetchall()
 
+    cursor.close()
+    db_pool.putconn(conn)
     return {"usage": data}
-
 @app.post("/create-order")
 def create_order(amount: float = Form(...), api_key: str = Form(...),user=Depends(verify_token)):
     try:
@@ -643,7 +647,8 @@ def get_payments(user=Depends(verify_token)):
         ORDER BY created_at DESC
     """, (user_id,))
     data = cursor.fetchall()
-
+    cursor.close()
+    db_pool.putconn(conn)
 
     return {"payments": data}
 
