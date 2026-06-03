@@ -343,10 +343,11 @@ def gateway(
 
     conn.commit()
 
-
     try:
         response = requests.get(url, params=params, timeout=5)
     except requests.exceptions.RequestException as e:
+        cursor.close()
+        db_pool.putconn(conn) 
         return {"error": "External API failed", "details": str(e)}
 
 
@@ -647,9 +648,14 @@ def get_payments(user=Depends(verify_token)):
         ORDER BY created_at DESC
     """, (user_id,))
     data = cursor.fetchall()
-    cursor.close()
+    cursor.close() 
     db_pool.putconn(conn)
 
     return {"payments": data}
 
-
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    # Ask Northflank for the port, or use 8080 as a backup
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
