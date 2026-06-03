@@ -1,4 +1,4 @@
-const API = "https://huggingface.co/spaces/ayushTrilokchandani/meterflow-backend";
+const API = "https://ayushtrilokchandani-meterflow-backend.hf.space";
 
 window.onload = function () {
 
