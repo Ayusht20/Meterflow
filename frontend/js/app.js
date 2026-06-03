@@ -17,38 +17,97 @@ window.onload = function () {
 
 // ---------------- SIGNUP ----------------
 async function signup() {
+    let emailInput = document.getElementById("s_email").value;
+    let passInput = document.getElementById("s_pass").value;
+
+    if (!emailInput || !passInput) {
+        showToast("Please fill in all fields");
+        return;
+    }
+
     let form = new FormData();
-    form.append("email", document.getElementById("s_email").value);
-    form.append("password", document.getElementById("s_pass").value);
+    form.append("email", emailInput);
+    form.append("password", passInput);
 
-    let res = await fetch(API + "/signup", {
-        method: "POST",
-        body: form
-    });
+    try {
+        let res = await fetch(API + "/signup", {
+            method: "POST",
+            body: form
+        });
 
-    let data = await res.json();
-    document.getElementById("msg").innerText = data.message || data.detail;
+        let data = await res.json();
+
+        if (res.ok) {
+            showToast("Signup successful! Please login. ✅");
+            // Automatically flip to login screen after 1.5 seconds
+            setTimeout(() => {
+                showLogin();
+            }, 1500);
+        } else {
+            // Shows errors like "User already exists"
+            showToast(data.detail || "Signup failed");
+        }
+    } catch (err) {
+        console.error(err);
+        showToast("Server connection error");
+    }
 }
 
 // ---------------- LOGIN ----------------
 async function login() {
-    let form = new FormData();
-    form.append("email", document.getElementById("l_email").value);
-    form.append("password", document.getElementById("l_pass").value);
+    let emailInput = document.getElementById("l_email").value;
+    let passInput = document.getElementById("l_pass").value;
 
-    let res = await fetch(API + "/login", {
-        method: "POST",
-        body: form
-    });
-
-    let data = await res.json();
-
-    if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
-        window.location.href = "/dashboard.html";
-    } else {
-        document.getElementById("msg").innerText = data.detail;
+    if (!emailInput || !passInput) {
+        showToast("Please fill in all fields");
+        return;
     }
+
+    let form = new FormData();
+    form.append("email", emailInput);
+    form.append("password", passInput);
+
+    try {
+        let res = await fetch(API + "/login", {
+            method: "POST",
+            body: form
+        });
+
+        let data = await res.json();
+
+        if (res.ok && data.access_token) {
+            showToast("Login successful! Redirecting... 🚀");
+            localStorage.setItem("token", data.access_token);
+            
+            // Wait 1 second so they can see the success toast before redirecting
+            setTimeout(() => {
+                window.location.href = "/dashboard.html";
+            }, 1000);
+        } else {
+            // Shows errors like "Wrong password" or "User not found"
+            showToast(data.detail || "Invalid email or password");
+        }
+    } catch (err) {
+        console.error(err);
+        showToast("Server connection error");
+    }
+}
+function showToast(msg) {
+    let t = document.createElement("div");
+    t.innerText = msg;
+    t.style.position = "fixed";
+    t.style.bottom = "20px";
+    t.style.right = "20px";
+    t.style.background = "#1e1e24"; // Sleek dark gray
+    t.style.color = "white";
+    t.style.padding = "12px 24px";
+    t.style.borderRadius = "8px";
+    t.style.boxShadow = "0px 4px 15px rgba(0,0,0,0.5)"; // Drop shadow so it stands out
+    t.style.zIndex = "10000"; // Ensures it floats on top of everything else
+    t.style.fontFamily = "sans-serif";
+
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
 }
 
 // ---------------- LOAD APIs ----------------
