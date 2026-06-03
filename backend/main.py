@@ -160,7 +160,32 @@ def login(email: str = Form(...), password: str = Form(...)):
         cursor.close()
         db_pool.putconn(conn)
 
-
+@app.get("/health")
+def health_check():
+    try:
+        # 1. Grab a connection from the pool to test the pipeline
+        conn = db_pool.getconn()
+        cursor = conn.cursor()
+        
+        # 2. Run a lightweight query that consumes zero data footprint
+        cursor.execute("SELECT 1;")
+        cursor.fetchone()
+        
+        # 3. Clean up immediately and return connection to pool
+        cursor.close()
+        db_pool.putconn(conn)
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        print("HEALTH CHECK FAILED:", str(e))
+        raise HTTPException(
+            status_code=500, 
+            detail={"status": "unhealthy", "database": "disconnected", "error": str(e)}
+        )
 
 @app.get("/my-dashboard")
 def my_dashboard(user=Depends(verify_token)):
