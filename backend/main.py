@@ -653,10 +653,6 @@ def analytics(user=Depends(verify_token)):
 
     return {"data": rows}
 
-@app.get("/health")
-def health_check():
-    return {"health":"Meterflow Successfully working "}
-
 @app.get("/payments")
 def get_payments(user=Depends(verify_token)):
 
