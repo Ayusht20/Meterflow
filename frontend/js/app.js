@@ -1,4 +1,4 @@
-const API = "https://ayushtrilokchandani-meterflow-backend.hf.space";
+const API = "https://meterflow-5qrc.onrender.com";
 
 window.onload = function () {
 

@@ -653,6 +653,10 @@ def analytics(user=Depends(verify_token)):
 
     return {"data": rows}
 
+@app.get("/health")
+def health_check():
+    return {"health":"Meterflow Successfully working "}
+
 @app.get("/payments")
 def get_payments(user=Depends(verify_token)):
 
@@ -684,3 +688,4 @@ if __name__ == "__main__":
     # Ask Northflank for the port, or use 8080 as a backup
     port = int(os.getenv("PORT", 8080))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+
