@@ -5,17 +5,16 @@ window.onload = function () {
     if (document.getElementById("api_list")) {
         loadAPIs();
     }
-
     if (document.getElementById("usage_table")) {
         loadUsage();
     }
-
     if (document.getElementById("dashboard_data")) {
         loadDashboard();
     }
 };
 
-// ---------------- SIGNUP ----------------
+
+// ---------------- SIGNUP ---------------
 async function signup() {
     let emailInput = document.getElementById("s_email").value;
     let passInput = document.getElementById("s_pass").value;
